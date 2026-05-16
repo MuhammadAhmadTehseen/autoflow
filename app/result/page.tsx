@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { AutomationOpportunity } from "@/lib/claude";
 import {
@@ -33,19 +34,26 @@ type AnalysisResult = {
 };
 
 const loadingSteps = [
-  { label: "Reading your business profile...", duration: 1000 },
-  { label: "Identifying automation opportunities...", duration: 1500 },
-  { label: "Generating n8n workflow...", duration: 2000 },
-  { label: "Finalizing your plan...", duration: 800 },
+  { label: "Reading your business profile..." },
+  { label: "Identifying automation opportunities..." },
+  { label: "Generating n8n workflow..." },
+  { label: "Finalizing your plan..." },
 ];
 
 // ─── Charts ──────────────────────────────────────────────────────────────────
 
-const HOURLY_RATE = 50; // USD — industry benchmark for manual labour cost
 const WEEKS_PER_YEAR = 52;
 
-function ImpactCharts({ opportunities }: { opportunities: AutomationOpportunity[] }) {
+// Parse "$75/hr" → 75, fallback to 50
+function parseRate(raw: string | null): number {
+  if (!raw) return 50;
+  const n = parseInt(raw.replace(/\D/g, ""), 10);
+  return isNaN(n) ? 50 : n;
+}
+
+function ImpactCharts({ opportunities, hourlyRate }: { opportunities: AutomationOpportunity[]; hourlyRate: number }) {
   const totalSaved = opportunities.reduce((s, o) => s + o.estimated_hours_saved_per_week, 0);
+  const HOURLY_RATE = hourlyRate;
   const totalManual = totalSaved + 2; // assume 2 hrs/wk residual oversight remains
 
   // Chart A — Before vs After hours per week (per opportunity)
@@ -487,37 +495,61 @@ function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: bo
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResultPage() {
+function ResultPageInner() {
+  const searchParams = useSearchParams();
+  const rawRate = searchParams.get("rate");
+  const hourlyRate = parseRate(rawRate);
+
   const [currentStep, setCurrentStep] = useState(0);
   const [done, setDone] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const calledRef = useRef(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("autoflow_result");
-    if (stored) {
-      try {
-        setResult(JSON.parse(stored));
-      } catch {
-        // ignore parse errors
-      }
+    if (calledRef.current) return;
+    calledRef.current = true;
+
+    const formDataRaw = sessionStorage.getItem("autoflow_form_data");
+    if (!formDataRaw) {
+      setSessionExpired(true);
+      setDone(true);
+      return;
     }
 
-    let accumulated = 0;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    loadingSteps.forEach((step, i) => {
-      accumulated += step.duration;
-      const t = setTimeout(() => {
-        setCurrentStep(i + 1);
-        if (i === loadingSteps.length - 1) setTimeout(() => setDone(true), 300);
-      }, accumulated);
-      timers.push(t);
-    });
+    // Tick loading steps on a slow schedule while API runs
+    const stepTimers = [2000, 6000, 12000].map((ms, i) =>
+      setTimeout(() => setCurrentStep(i + 1), ms)
+    );
 
-    return () => timers.forEach(clearTimeout);
+    fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: formDataRaw,
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Analysis failed");
+        return json as AnalysisResult;
+      })
+      .then((data) => {
+        sessionStorage.setItem("autoflow_result", JSON.stringify(data));
+        setResult(data);
+        setCurrentStep(4);
+        setTimeout(() => setDone(true), 600);
+      })
+      .catch((err) => {
+        setApiError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        setDone(true);
+      })
+      .finally(() => stepTimers.forEach(clearTimeout));
+
+    return () => stepTimers.forEach(clearTimeout);
   }, []);
 
   const totalHours = result?.opportunities.reduce((s, o) => s + o.estimated_hours_saved_per_week, 0) ?? 0;
-  const annualSavings = totalHours * 50 * 52;
+  const annualSavings = totalHours * hourlyRate * WEEKS_PER_YEAR;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -536,7 +568,50 @@ export default function ResultPage() {
       </nav>
 
       <div className="max-w-3xl mx-auto px-6 py-16">
-        {!done ? (
+        {/* Session expired */}
+        {done && sessionExpired && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-2xl bg-yellow-100 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-3">Session expired</h1>
+            <p className="text-gray-500 mb-8 max-w-sm mx-auto">
+              This page can&apos;t reload your results — please go back and fill out the form again.
+            </p>
+            <Link href="/form" className="inline-block bg-indigo-600 text-white font-semibold px-8 py-3 rounded-xl hover:bg-indigo-700 transition-colors">
+              Start New Analysis →
+            </Link>
+          </div>
+        )}
+
+        {/* API error */}
+        {done && apiError && !sessionExpired && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-3">Analysis failed</h1>
+            <p className="text-gray-500 mb-2 max-w-sm mx-auto">{apiError}</p>
+            <p className="text-gray-400 text-sm mb-8">Your form data is saved — you can try again without re-filling the form.</p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => { calledRef.current = false; setApiError(null); setDone(false); setCurrentStep(0); }}
+                className="bg-indigo-600 text-white font-semibold px-8 py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <Link href="/form" className="border border-gray-200 text-gray-600 font-medium px-8 py-3 rounded-xl hover:bg-gray-50 transition-colors">
+                Edit Form
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!done && !sessionExpired ? (
           /* Loading */
           <div className="text-center">
             <div className="w-20 h-20 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-8 animate-pulse">
@@ -572,7 +647,7 @@ export default function ResultPage() {
               ))}
             </div>
           </div>
-        ) : (
+        ) : done && !sessionExpired && !apiError ? (
           /* Results */
           <div>
             {/* Header */}
@@ -650,7 +725,7 @@ export default function ResultPage() {
 
             {/* Impact Charts — shown only when we have real data */}
             {result && result.opportunities.length > 0 && (
-              <ImpactCharts opportunities={result.opportunities} />
+              <ImpactCharts opportunities={result.opportunities} hourlyRate={hourlyRate} />
             )}
 
             {/* Setup Checklist */}
@@ -672,8 +747,16 @@ export default function ResultPage() {
               </Link>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" /></div>}>
+      <ResultPageInner />
+    </Suspense>
   );
 }

@@ -91,6 +91,7 @@ type FormData = {
   manualTasks: string[];
   otherManualTasks: string;
   hoursPerWeek: string;
+  hourlyRate: string;
   biggestFrustration: string;
   automationGoals: string[];
   specificWish: string;
@@ -113,6 +114,7 @@ const initialData: FormData = {
   manualTasks: [],
   otherManualTasks: "",
   hoursPerWeek: "",
+  hourlyRate: "",
   biggestFrustration: "",
   automationGoals: [],
   specificWish: "",
@@ -191,6 +193,7 @@ export default function BusinessForm() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<FormData>(initialData);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const update = (field: keyof FormData, value: string | string[]) =>
@@ -206,30 +209,17 @@ export default function BusinessForm() {
     });
   };
 
-  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-  const back = () => setStep((s) => Math.max(s - 1, 1));
+  const next = () => { setError(null); setStep((s) => Math.min(s + 1, TOTAL_STEPS)); };
+  const back = () => { setError(null); setStep((s) => Math.max(s - 1, 1)); };
 
   const handleSubmit = async () => {
     setLoading(true);
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Analysis failed");
-      }
-
-      const result = await response.json();
-      sessionStorage.setItem("autoflow_result", JSON.stringify(result));
-      router.push("/result");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Something went wrong. Please try again.");
-      setLoading(false);
-    }
+    setError(null);
+    // Store form data for the result page to use
+    sessionStorage.setItem("autoflow_form_data", JSON.stringify(data));
+    // Navigate immediately — result page makes the API call
+    const rate = data.hourlyRate || "50";
+    router.push(`/result?rate=${encodeURIComponent(rate)}`);
   };
 
   const stepTitles = [
@@ -380,6 +370,16 @@ export default function BusinessForm() {
             </div>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Your average hourly rate (used to calculate cost savings)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {["$25/hr", "$50/hr", "$75/hr", "$100/hr", "$150/hr", "$200+/hr"].map((r) => (
+                <ToggleChip key={r} label={r} selected={data.hourlyRate === r} onClick={() => update("hourlyRate", r)} />
+              ))}
+            </div>
+          </div>
+          <div>
             <Label>What is your biggest operational frustration?</Label>
             <textarea value={data.biggestFrustration} onChange={(e) => update("biggestFrustration", e.target.value)}
               placeholder="Describe the most painful, time-consuming, or error-prone part of your workflow. Be specific — the more detail, the better the automation plan..."
@@ -438,6 +438,7 @@ export default function BusinessForm() {
               value: [...data.manualTasks, data.otherManualTasks].filter(Boolean).join(", ") || "—",
             },
             { label: "Hours/week", value: data.hoursPerWeek },
+            { label: "Hourly rate", value: data.hourlyRate },
             { label: "Goals", value: data.automationGoals.join(", ") || "—" },
           ].map(({ label, value }) => (
             <div key={label} className="flex gap-4 py-3 border-b border-gray-100">
@@ -463,6 +464,19 @@ export default function BusinessForm() {
               <span className="text-sm text-gray-900">{data.additionalContext}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Error banner */}
+      {error && (
+        <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-red-800">Something went wrong</p>
+            <p className="text-sm text-red-600 mt-0.5">{error}</p>
+          </div>
         </div>
       )}
 

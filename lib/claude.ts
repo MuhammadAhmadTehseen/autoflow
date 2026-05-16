@@ -5,11 +5,11 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// The 3 supported automation cases — Claude picks the best fit and customizes it
+// 8 workflow templates — Claude picks the best fit and customizes it
 const TEMPLATE_CONTEXT = `
 ## AVAILABLE WORKFLOW TEMPLATES
 
-You have exactly 3 workflow templates to choose from. Pick the best match for the business and customize it for their specific situation. Do not invent new node types.
+You have 8 workflow templates to choose from. Pick the single best match for the business's top opportunity and customize it. Do not invent new node types.
 
 ### Template 1: Email Follow-up Automation
 ${templates.emailFollowup.description}
@@ -19,6 +19,21 @@ ${templates.captionGenerator.description}
 
 ### Template 3: Weekly Report Generator
 ${templates.weeklyReport.description}
+
+### Template 4: Appointment Reminder Automation
+${templates.appointmentReminder.description}
+
+### Template 5: Lead Enrichment and Qualification
+${templates.leadEnrichment.description}
+
+### Template 6: Customer Support Email Triage
+${templates.supportTriage.description}
+
+### Template 7: Client Onboarding Sequence
+${templates.clientOnboarding.description}
+
+### Template 8: Invoice Generation and Delivery
+${templates.invoiceGeneration.description}
 
 When generating the workflow JSON for opportunity #1, use the structure of the best-matching template above, and customize the node names, parameters, and logic to fit this specific business. Keep the same node types and connection pattern.
 `;
