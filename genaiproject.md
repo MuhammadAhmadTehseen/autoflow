@@ -104,6 +104,30 @@ Goal: Make it demo-ready for course submission
 
 ---
 
+### Phase 7 — Impact Charts ✅ DONE (2026-05-17)
+Goal: Add data visualisation to result page so output feels professional and credible
+
+**Tasks:**
+- [x] Installed `recharts` via npm
+- [x] Built `ImpactCharts` component with 3 charts driven by real Claude output data:
+  - **Bar chart** — Time saved before vs. after per automation (hrs/wk)
+  - **Donut + key numbers panel** — Annual cost breakdown: manual cost today / after automation / $ savings
+  - **Line chart** — Cumulative hours saved over 12-month projection
+- [x] Stats bar updated: 3rd stat now shows estimated annual savings ($) instead of "1 workflow built"
+- [x] Charts use $50/hr × 52 wks benchmark for cost calculations
+- [x] Charts only render when real opportunity data exists (no empty state crash)
+- [x] All TypeScript types pass — clean build, pushed to GitHub, auto-deployed to Vercel
+
+**Commit:** `feat: add 3 impact charts to result page (Recharts)`
+
+---
+
+### Upcoming Improvements (Backlog)
+- [ ] **Phase 8** — Landing page visual upgrade: product screenshot in hero, stats strip, social proof testimonials, powered-by logos, SVG icons replacing emojis
+- [ ] **Phase 9** — Technical fixes: result persistence (URL params vs sessionStorage), real loading progress tied to API, Resend production domain, proper error page, expand workflow templates 3 → 8+, hourly rate field in form
+
+---
+
 ## Environment Variables
 
 | Variable | Used in | Status |
