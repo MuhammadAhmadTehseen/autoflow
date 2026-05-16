@@ -173,8 +173,32 @@ Goal: Fix core technical issues and make the pipeline more robust and accurate
 
 ---
 
-### Upcoming Improvements (Backlog)
-- [ ] **Phase 10** — Resend production domain (so clients actually get the email, not just NOTIFY_EMAIL)
+---
+
+### Phase 10 — Production Email ✅ DONE (2026-05-17)
+Goal: Make emails go to the actual client, not just the internal notify address
+
+**Code changes (deployed):**
+- [x] `lib/email.ts` now checks `RESEND_FROM_EMAIL` env var
+- [x] **When set** (production): sends `to: clientEmail`, `cc: NOTIFY_EMAIL`, `replyTo: NOTIFY_EMAIL` — client gets the email directly
+- [x] **When not set** (sandbox): old behaviour unchanged — sends only to `NOTIFY_EMAIL`
+- [x] Subject line cleaned up in both modes
+- [x] `.env.example` updated with `RESEND_FROM_EMAIL` and clear comments
+
+**To fully activate (requires manual DNS step):**
+1. Go to [resend.com](https://resend.com) → Domains → Add Domain
+2. Enter your domain (e.g. `withsoch.com`)
+3. Resend shows 3 DNS records — add them in your domain registrar (Namecheap / GoDaddy / Cloudflare)
+4. Wait for verification (usually 5–30 min)
+5. In Vercel → Settings → Environment Variables → add `RESEND_FROM_EMAIL=autoflow@withsoch.com`
+6. Redeploy (or Vercel picks it up automatically)
+
+**Commit:** `feat: Phase 10 — production email via RESEND_FROM_EMAIL env var`
+
+---
+
+### Project Status: All Phases Complete ✅
+The app is fully functional, deployed, and demo-ready. All 10 phases shipped.
 
 ---
 
