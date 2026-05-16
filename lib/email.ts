@@ -145,16 +145,13 @@ export async function sendResultEmail({
   workflowName: string | null;
   workflowUrl: string | null;
 }): Promise<void> {
-  const notifyEmail = process.env.NOTIFY_EMAIL;
-  const to = [clientEmail];
-  if (notifyEmail && notifyEmail !== clientEmail) to.push(notifyEmail);
-
+  const notifyEmail = process.env.NOTIFY_EMAIL ?? "imurtaza544@gmail.com";
   const html = buildHtml({ clientName, businessName, summary, opportunities, workflowName, workflowUrl });
 
   await resend.emails.send({
     from: "AutoFlow <onboarding@resend.dev>",
-    to,
-    subject: `Your Automation Plan is Ready — ${businessName}`,
+    to: [notifyEmail],
+    subject: `Your Automation Plan is Ready — ${businessName} (${clientEmail})`,
     html,
   });
 }
