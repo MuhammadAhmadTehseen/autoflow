@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeBusinessProfile } from "@/lib/claude";
 import { deployWorkflow } from "@/lib/n8n";
 
+// Extend Vercel function timeout to 60s (default is 10s — not enough for Claude + n8n)
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.json();
@@ -52,9 +55,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Analysis error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Analysis error:", message);
     return NextResponse.json(
-      { error: "Failed to analyze business profile. Please try again." },
+      { error: `Analysis failed: ${message}` },
       { status: 500 }
     );
   }
