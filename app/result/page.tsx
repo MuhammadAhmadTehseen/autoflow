@@ -2,65 +2,108 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import type { AnalysisResult, AutomationOpportunity } from "@/lib/claude";
 
 const loadingSteps = [
-  { label: "Reading your business profile...", duration: 1800 },
-  { label: "Identifying automation opportunities...", duration: 2200 },
-  { label: "Generating n8n workflow...", duration: 2500 },
-  { label: "Deploying workflow to n8n...", duration: 1500 },
-  { label: "Sending you a confirmation email...", duration: 1000 },
+  { label: "Reading your business profile...", duration: 1000 },
+  { label: "Identifying automation opportunities...", duration: 1500 },
+  { label: "Generating n8n workflow...", duration: 2000 },
+  { label: "Finalizing your plan...", duration: 800 },
 ];
 
-const mockOpportunities = [
-  {
-    rank: 1,
-    title: "Automated Email Follow-up Sequence",
-    impact: "High",
-    hours: "~5 hrs/week saved",
-    description:
-      "Automatically send personalized follow-up emails to leads after they fill out your contact form — no manual intervention needed.",
-    nodes: ["Webhook", "Gmail", "Google Sheets"],
-  },
-  {
-    rank: 2,
-    title: "Social Media Caption Generator",
-    impact: "Medium",
-    hours: "~3 hrs/week saved",
-    description:
-      "Trigger a Claude AI node whenever you add a new product or topic to a Google Sheet — get a ready-to-post caption in seconds.",
-    nodes: ["Google Sheets", "Claude AI", "Slack"],
-  },
-  {
-    rank: 3,
-    title: "Weekly Performance Report",
-    impact: "Medium",
-    hours: "~2 hrs/week saved",
-    description:
-      "Every Monday, automatically pull data from your tools, summarize it with AI, and email a clean report to your team.",
-    nodes: ["Schedule", "HTTP Request", "Claude AI", "Gmail"],
-  },
-];
+function ImpactBadge({ feasibility }: { feasibility: string }) {
+  const styles: Record<string, string> = {
+    high: "bg-green-100 text-green-700",
+    medium: "bg-yellow-100 text-yellow-700",
+    low: "bg-red-100 text-red-700",
+  };
+  return (
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${styles[feasibility] || styles.medium}`}>
+      {feasibility} feasibility
+    </span>
+  );
+}
+
+function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: boolean }) {
+  return (
+    <div className={`bg-white rounded-2xl border shadow-sm p-6 ${isTop ? "border-indigo-200 ring-1 ring-indigo-100" : "border-gray-100"}`}>
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg text-white text-sm font-bold flex items-center justify-center shrink-0 ${isTop ? "bg-indigo-600" : "bg-gray-400"}`}>
+            {opp.rank}
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">{opp.title}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Trigger: {opp.trigger}</p>
+          </div>
+        </div>
+        <ImpactBadge feasibility={opp.feasibility} />
+      </div>
+
+      <p className="text-gray-500 text-sm mb-4 leading-relaxed">{opp.description}</p>
+
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {opp.tools_required.map((tool) => (
+            <span key={tool} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-medium">
+              {tool}
+            </span>
+          ))}
+        </div>
+        <span className="text-xs text-green-700 font-medium bg-green-50 px-2.5 py-1 rounded-lg">
+          ~{opp.estimated_hours_saved_per_week} hrs/week saved
+        </span>
+      </div>
+
+      {isTop && (
+        <div className="mt-4 pt-4 border-t border-indigo-100">
+          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
+            Workflow built for this opportunity
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ResultPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    // Load real result from sessionStorage (set by BusinessForm after API call)
+    const stored = sessionStorage.getItem("autoflow_result");
+    if (stored) {
+      try {
+        setResult(JSON.parse(stored));
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    // Run loading animation
     let accumulated = 0;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     loadingSteps.forEach((step, i) => {
       accumulated += step.duration;
-      timeout = setTimeout(() => {
+      const t = setTimeout(() => {
         setCurrentStep(i + 1);
         if (i === loadingSteps.length - 1) {
-          setTimeout(() => setDone(true), 400);
+          setTimeout(() => setDone(true), 300);
         }
       }, accumulated);
+      timers.push(t);
     });
 
-    return () => clearTimeout(timeout);
+    return () => timers.forEach(clearTimeout);
   }, []);
+
+  const totalHours = result?.opportunities.reduce(
+    (sum, o) => sum + o.estimated_hours_saved_per_week,
+    0
+  ) ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,7 +131,7 @@ export default function ResultPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold mb-2">Building your automation plan...</h1>
-            <p className="text-gray-500 mb-12">This takes about 10 seconds. Please don&apos;t close this tab.</p>
+            <p className="text-gray-500 mb-12">Claude AI is analyzing your business. This takes a few seconds.</p>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-left max-w-md mx-auto">
               {loadingSteps.map((step, i) => (
@@ -109,15 +152,7 @@ export default function ResultPage() {
                       <div className="w-5 h-5 rounded-full border-2 border-gray-200" />
                     )}
                   </div>
-                  <span
-                    className={`text-sm ${
-                      i < currentStep
-                        ? "text-gray-400 line-through"
-                        : i === currentStep
-                        ? "text-gray-900 font-medium"
-                        : "text-gray-300"
-                    }`}
-                  >
+                  <span className={`text-sm ${i < currentStep ? "text-gray-400 line-through" : i === currentStep ? "text-gray-900 font-medium" : "text-gray-300"}`}>
                     {step.label}
                   </span>
                 </div>
@@ -127,7 +162,7 @@ export default function ResultPage() {
         ) : (
           /* Results */
           <div>
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-6">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -135,22 +170,41 @@ export default function ResultPage() {
               </div>
               <h1 className="text-3xl font-bold mb-3">Your Automation Plan is Ready</h1>
               <p className="text-gray-500 max-w-lg mx-auto">
-                We&apos;ve identified 3 automation opportunities and deployed your first workflow to n8n.
-                Check your email for the workflow link.
+                {result
+                  ? result.summary
+                  : "We've identified your top automation opportunities."}
               </p>
             </div>
 
+            {/* Stats bar */}
+            {result && (
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                  <div className="text-2xl font-bold text-indigo-600">{result.opportunities.length}</div>
+                  <div className="text-xs text-gray-500 mt-1">Opportunities found</div>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600">~{totalHours}</div>
+                  <div className="text-xs text-gray-500 mt-1">Hours saved / week</div>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                  <div className="text-2xl font-bold text-orange-500">1</div>
+                  <div className="text-xs text-gray-500 mt-1">Workflow built</div>
+                </div>
+              </div>
+            )}
+
             {/* Email notice */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex gap-4 mb-10">
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex gap-4 mb-8">
               <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-indigo-900 text-sm">Workflow deployed successfully</p>
+                <p className="font-medium text-indigo-900 text-sm">Workflow deployed to n8n</p>
                 <p className="text-indigo-700 text-sm mt-0.5">
-                  A confirmation email with your live n8n workflow link has been sent to your inbox.
+                  A confirmation email with your live workflow link will be sent to your inbox shortly.
                 </p>
               </div>
             </div>
@@ -158,41 +212,8 @@ export default function ResultPage() {
             {/* Opportunities */}
             <h2 className="text-xl font-bold mb-5">Your Top Automation Opportunities</h2>
             <div className="space-y-4 mb-10">
-              {mockOpportunities.map((opp) => (
-                <div key={opp.rank} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-sm font-bold flex items-center justify-center shrink-0">
-                        {opp.rank}
-                      </div>
-                      <h3 className="font-semibold text-gray-900">{opp.title}</h3>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                          opp.impact === "High"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {opp.impact} Impact
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm mb-4 leading-relaxed">{opp.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      {opp.nodes.map((node) => (
-                        <span key={node} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-medium">
-                          {node}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="text-xs text-green-700 font-medium bg-green-50 px-2.5 py-1 rounded-lg">
-                      {opp.hours}
-                    </span>
-                  </div>
-                </div>
+              {(result?.opportunities ?? []).map((opp) => (
+                <OpportunityCard key={opp.rank} opp={opp} isTop={opp.rank === 1} />
               ))}
             </div>
 

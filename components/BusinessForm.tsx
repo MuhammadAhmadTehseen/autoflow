@@ -138,9 +138,25 @@ export default function BusinessForm() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    // Store form data and navigate to result page
-    sessionStorage.setItem("autoflow_data", JSON.stringify(data));
-    router.push("/result");
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Analysis failed");
+      }
+
+      const result = await response.json();
+      sessionStorage.setItem("autoflow_result", JSON.stringify(result));
+      router.push("/result");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   const stepTitles = [
