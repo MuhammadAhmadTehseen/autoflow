@@ -122,9 +122,27 @@ Goal: Add data visualisation to result page so output feels professional and cre
 
 ---
 
+---
+
+### Phase 8 — Landing Page Visual Upgrade ✅ DONE (2026-05-17)
+Goal: Make the landing page look like a real SaaS product, not a student project
+
+**Tasks:**
+- [x] **Product mockup** — inline mock browser window in hero showing result page UI (stats bar, opportunity card, mini bar chart) — no image files needed, pure JSX
+- [x] **Stats strip** — ~$18K avg saved/yr · 3 min to complete · 500+ workflows deployed · 60-95% automation rate
+- [x] **Powered-by bar** — Anthropic Claude, n8n Workflows, Vercel, Resend (styled pill badges)
+- [x] **Testimonials section** — 3 cards with initials avatars (colour-coded), star ratings, realistic quotes
+- [x] **Use cases** — SVG Heroicons replacing emojis, white card style, indigo hover state
+- [x] **How it works** — SVG icons in indigo pill, "Step XX" label, card hover effects
+- [x] **CTA banner** — dot-grid radial background overlay for visual depth
+- [x] TypeScript clean build, pushed to GitHub, auto-deployed to Vercel
+
+**Commit:** `feat: Phase 8 — full landing page visual upgrade`
+
+---
+
 ### Upcoming Improvements (Backlog)
-- [ ] **Phase 8** — Landing page visual upgrade: product screenshot in hero, stats strip, social proof testimonials, powered-by logos, SVG icons replacing emojis
-- [ ] **Phase 9** — Technical fixes: result persistence (URL params vs sessionStorage), real loading progress tied to API, Resend production domain, proper error page, expand workflow templates 3 → 8+, hourly rate field in form
+- [ ] **Phase 9** — Technical fixes: result persistence (URL params vs sessionStorage), real loading progress tied to API, Resend production domain, proper error page, expand workflow templates 3 → 8+, hourly rate field in form for real cost calc
 
 ---
 
