@@ -92,6 +92,23 @@ OUTPUT:
 
 Now analyze the following business profile and return the JSON output:`;
 
+function extractJSON(text: string): string {
+  const start = text.indexOf("{");
+  if (start === -1) throw new Error("No JSON object found in response");
+  let depth = 0, inString = false, escape = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\" && inString) { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
+    }
+  }
+  throw new Error("Incomplete JSON object in response");
+}
+
 export type AutomationOpportunity = {
   rank: number;
   title: string;
@@ -124,15 +141,8 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
 
   const rawText = (response.content[0] as { text: string }).text.trim();
 
-  // Extract just the JSON object — find first { and last }
-  const jsonStart = rawText.indexOf("{");
-  const jsonEnd = rawText.lastIndexOf("}");
-  const cleaned = jsonStart !== -1 && jsonEnd !== -1
-    ? rawText.slice(jsonStart, jsonEnd + 1)
-    : rawText;
-
   try {
-    return JSON.parse(cleaned) as AnalysisResult;
+    return JSON.parse(extractJSON(rawText)) as AnalysisResult;
   } catch {
     // Retry: ask Claude to return clean JSON
     const retryResponse = await client.messages.create({
@@ -151,11 +161,6 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
       ],
     });
     const retryRaw = (retryResponse.content[0] as { text: string }).text.trim();
-    const retryStart = retryRaw.indexOf("{");
-    const retryEnd = retryRaw.lastIndexOf("}");
-    const retryCleaned = retryStart !== -1 && retryEnd !== -1
-      ? retryRaw.slice(retryStart, retryEnd + 1)
-      : retryRaw;
-    return JSON.parse(retryCleaned) as AnalysisResult;
+    return JSON.parse(extractJSON(retryRaw)) as AnalysisResult;
   }
 }
