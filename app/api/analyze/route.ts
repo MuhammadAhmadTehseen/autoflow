@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeBusinessProfile } from "@/lib/claude";
 import { deployWorkflow } from "@/lib/n8n";
+import { sendResultEmail } from "@/lib/email";
 
 // Extend Vercel function timeout to 60s (default is 10s — not enough for Claude + n8n)
 export const maxDuration = 60;
@@ -42,6 +43,21 @@ export async function POST(req: NextRequest) {
     } catch (deployError) {
       // Non-fatal: still return analysis even if n8n deploy fails
       console.error("n8n deploy error:", deployError);
+    }
+
+    // Step 4: Send result email (non-fatal)
+    try {
+      await sendResultEmail({
+        clientName: formData.name as string || "there",
+        clientEmail: formData.email as string || process.env.NOTIFY_EMAIL!,
+        businessName: formData.businessName as string,
+        summary: analysis.summary,
+        opportunities: analysis.opportunities,
+        workflowName: (analysis.workflow as { name?: string }).name ?? null,
+        workflowUrl: deployResult?.workflowUrl ?? null,
+      });
+    } catch (emailError) {
+      console.error("Email send error:", emailError);
     }
 
     return NextResponse.json({
