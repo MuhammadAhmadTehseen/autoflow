@@ -2,7 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { AnalysisResult, AutomationOpportunity } from "@/lib/claude";
+import type { AutomationOpportunity } from "@/lib/claude";
+
+type WorkflowInfo = {
+  name: string;
+  deployed: boolean;
+  id: string | null;
+  url: string | null;
+};
+
+type AnalysisResult = {
+  opportunities: AutomationOpportunity[];
+  summary: string;
+  workflow: WorkflowInfo;
+};
 
 const loadingSteps = [
   { label: "Reading your business profile...", duration: 1000 },
@@ -194,20 +207,45 @@ export default function ResultPage() {
               </div>
             )}
 
-            {/* Email notice */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex gap-4 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+            {/* Workflow deployment status */}
+            {result?.workflow?.deployed && result.workflow.url ? (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex gap-4 mb-8">
+                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-green-900 text-sm">Live workflow deployed on n8n</p>
+                  <p className="text-green-700 text-sm mt-0.5 mb-2">{result.workflow.name}</p>
+                  <a
+                    href={result.workflow.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 underline underline-offset-2 hover:text-green-900 break-all"
+                  >
+                    {result.workflow.url}
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-indigo-900 text-sm">Workflow deployed to n8n</p>
-                <p className="text-indigo-700 text-sm mt-0.5">
-                  A confirmation email with your live workflow link will be sent to your inbox shortly.
-                </p>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex gap-4 mb-8">
+                <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-yellow-900 text-sm">Workflow analysis complete</p>
+                  <p className="text-yellow-700 text-sm mt-0.5">
+                    n8n deployment is pending. Your automation plan is ready below.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Opportunities */}
             <h2 className="text-xl font-bold mb-5">Your Top Automation Opportunities</h2>

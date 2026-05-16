@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeBusinessProfile } from "@/lib/claude";
+import { deployWorkflow } from "@/lib/n8n";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Map frontend form fields to the shape Claude expects
+    // Step 1: Map form fields to Claude's expected shape
     const profile = {
       business_name: formData.businessName,
       description: formData.businessDescription,
@@ -26,9 +27,30 @@ export async function POST(req: NextRequest) {
       biggest_frustration: formData.biggestFrustration || "",
     };
 
-    const result = await analyzeBusinessProfile(profile);
+    // Step 2: Analyze with Claude → get opportunities + workflow JSON
+    const analysis = await analyzeBusinessProfile(profile);
 
-    return NextResponse.json(result);
+    // Step 3: Deploy the generated workflow to n8n
+    let deployResult = null;
+    try {
+      deployResult = await deployWorkflow(
+        analysis.workflow as Record<string, unknown>
+      );
+    } catch (deployError) {
+      // Non-fatal: still return analysis even if n8n deploy fails
+      console.error("n8n deploy error:", deployError);
+    }
+
+    return NextResponse.json({
+      opportunities: analysis.opportunities,
+      summary: analysis.summary,
+      workflow: {
+        name: (analysis.workflow as { name?: string }).name ?? "AutoFlow Workflow",
+        deployed: deployResult !== null,
+        id: deployResult?.workflowId ?? null,
+        url: deployResult?.workflowUrl ?? null,
+      },
+    });
   } catch (error) {
     console.error("Analysis error:", error);
     return NextResponse.json(
