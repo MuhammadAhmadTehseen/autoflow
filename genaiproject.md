@@ -53,13 +53,14 @@ Goal: Send form data to Claude, get back structured analysis + n8n workflow JSON
 
 ---
 
-### Phase 3 — n8n Workflow Deployment ⏳ PENDING
+### Phase 3 — n8n Workflow Deployment ✅ DONE
 Goal: Take Claude's workflow JSON → deploy it live on n8n
 
 **Tasks:**
-- [ ] `lib/n8n.ts` — POST to create workflow, then activate it
-- [ ] Handle n8n API errors gracefully
-- [ ] Return workflow URL back to API route
+- [x] `lib/n8n.ts` — POST to create workflow, then activate it
+- [x] Non-fatal error handling (analysis still returns if n8n deploy fails)
+- [x] Workflow URL returned in API response
+- [x] Result page shows live n8n link (green banner) or fallback (yellow banner)
 
 **Env vars needed:** `N8N_API_KEY` ✅, `N8N_BASE_URL` ✅ (both set on Vercel)
 
