@@ -3,6 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { AutomationOpportunity } from "@/lib/claude";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 type WorkflowInfo = {
   name: string;
@@ -23,6 +38,152 @@ const loadingSteps = [
   { label: "Generating n8n workflow...", duration: 2000 },
   { label: "Finalizing your plan...", duration: 800 },
 ];
+
+// ─── Charts ──────────────────────────────────────────────────────────────────
+
+const HOURLY_RATE = 50; // USD — industry benchmark for manual labour cost
+const WEEKS_PER_YEAR = 52;
+
+function ImpactCharts({ opportunities }: { opportunities: AutomationOpportunity[] }) {
+  const totalSaved = opportunities.reduce((s, o) => s + o.estimated_hours_saved_per_week, 0);
+  const totalManual = totalSaved + 2; // assume 2 hrs/wk residual oversight remains
+
+  // Chart A — Before vs After hours per week (per opportunity)
+  const barData = opportunities.map((o) => ({
+    name: o.title.length > 22 ? o.title.slice(0, 22) + "…" : o.title,
+    "Before (hrs/wk)": o.estimated_hours_saved_per_week + 1,
+    "After (hrs/wk)": 1,
+  }));
+
+  // Chart B — Annual cost: before vs after (donut)
+  const annualBefore = totalManual * HOURLY_RATE * WEEKS_PER_YEAR;
+  const annualAfter = 2 * HOURLY_RATE * WEEKS_PER_YEAR; // 2 hrs oversight
+  const annualSavings = annualBefore - annualAfter;
+  const pieData = [
+    { name: "Annual Savings", value: annualSavings },
+    { name: "Remaining Cost", value: annualAfter },
+  ];
+  const PIE_COLORS = ["#4f46e5", "#e5e7eb"];
+
+  // Chart C — Cumulative hours saved over 12 months
+  const lineData = Array.from({ length: 12 }, (_, i) => ({
+    month: `M${i + 1}`,
+    "Hours Saved": Math.round(totalSaved * 4.33 * (i + 1)), // 4.33 wks/mo
+  }));
+
+  return (
+    <div className="mb-10 space-y-6">
+      <h2 className="text-xl font-bold text-gray-900">Impact Analysis</h2>
+      <p className="text-sm text-gray-500 -mt-4">
+        Based on industry benchmark of ${HOURLY_RATE}/hr and {WEEKS_PER_YEAR} working weeks/year.
+      </p>
+
+      {/* Chart A — Before vs After */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <h3 className="font-semibold text-gray-900 mb-1">Time Saved Per Automation</h3>
+        <p className="text-xs text-gray-400 mb-5">Hours per week — before vs. after automation</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={barData} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+            <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} unit=" hrs" />
+            <Tooltip
+              contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+              formatter={(v) => [`${v} hrs/wk`, ""]}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Bar dataKey="Before (hrs/wk)" fill="#e0e7ff" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="After (hrs/wk)" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Chart B + summary stats side by side */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Donut — cost split */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-1">Annual Cost Breakdown</h3>
+          <p className="text-xs text-gray-400 mb-4">Manual labour cost before vs. after</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={80}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {pieData.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(v) => [`$${Number(v).toLocaleString()}`, ""]}
+                contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Key numbers */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-center gap-4">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+            <span className="text-sm text-gray-500">Manual cost today</span>
+            <span className="font-bold text-gray-800 text-lg">${annualBefore.toLocaleString()}<span className="text-xs font-normal text-gray-400">/yr</span></span>
+          </div>
+          <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+            <span className="text-sm text-gray-500">Cost after automation</span>
+            <span className="font-bold text-gray-800 text-lg">${annualAfter.toLocaleString()}<span className="text-xs font-normal text-gray-400">/yr</span></span>
+          </div>
+          <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+            <span className="text-sm text-gray-500">You save</span>
+            <span className="font-bold text-green-600 text-2xl">${annualSavings.toLocaleString()}<span className="text-xs font-normal text-gray-400">/yr</span></span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Hours freed up</span>
+            <span className="font-bold text-indigo-600 text-lg">{totalSaved} hrs<span className="text-xs font-normal text-gray-400">/wk</span></span>
+          </div>
+          <p className="text-xs text-gray-400 pt-1">
+            Based on avg $50/hr benchmark. Actual savings depend on your team&apos;s hourly cost.
+          </p>
+        </div>
+      </div>
+
+      {/* Chart C — Cumulative hours over 12 months */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <h3 className="font-semibold text-gray-900 mb-1">Cumulative Hours Saved — 12 Month Projection</h3>
+        <p className="text-xs text-gray-400 mb-5">Total hours your team gets back over the next year</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={lineData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} />
+            <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} unit=" hrs" />
+            <Tooltip
+              contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+              formatter={(v) => [`${v} hours`, "Cumulative Saved"]}
+            />
+            <Line
+              type="monotone"
+              dataKey="Hours Saved"
+              stroke="#4f46e5"
+              strokeWidth={2.5}
+              dot={{ fill: "#4f46e5", r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="text-xs text-gray-400 text-center mt-3">
+          {totalSaved * 4 * 12} hours recovered by month 12 · equiv. to {Math.round((totalSaved * 4 * 12) / 160)} months of full-time work
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Credential setup checklist ───────────────────────────────────────────────
 
 function ImpactBadge({ feasibility }: { feasibility: string }) {
   const styles: Record<string, string> = {
@@ -201,19 +362,14 @@ function SetupChecklist({
         Your workflow is deployed but needs credentials connected before it runs. Follow these steps once.
       </p>
 
-      {/* Step 1 — Open workflow */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</div>
           <h3 className="font-semibold text-gray-900">Open your workflow in n8n</h3>
         </div>
         {workflowUrl ? (
-          <a
-            href={workflowUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800 break-all"
-          >
+          <a href={workflowUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800 break-all">
             {workflowUrl}
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -224,7 +380,6 @@ function SetupChecklist({
         )}
       </div>
 
-      {/* Step 2 — Connect credentials */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</div>
@@ -249,12 +404,8 @@ function SetupChecklist({
                     </li>
                   ))}
                 </ol>
-                <a
-                  href={g.docsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-indigo-500 hover:text-indigo-700 underline underline-offset-2"
-                >
+                <a href={g.docsUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-indigo-500 hover:text-indigo-700 underline underline-offset-2">
                   n8n docs for {g.tool} →
                 </a>
               </div>
@@ -263,30 +414,34 @@ function SetupChecklist({
         )}
       </div>
 
-      {/* Step 3 — Update placeholders */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</div>
           <h3 className="font-semibold text-gray-900">Replace placeholder values in nodes</h3>
         </div>
         <p className="text-sm text-gray-500 ml-10">
-          Open each node in the workflow and replace any values like <code className="bg-gray-100 px-1 rounded text-xs">YOUR_SHEET_ID</code>, <code className="bg-gray-100 px-1 rounded text-xs">YOUR_DOC_ID</code>, or <code className="bg-gray-100 px-1 rounded text-xs">YOUR_CHANNEL</code> with your actual IDs. These are found in the URL of the respective Google Sheet, Doc, or Slack channel.
+          Open each node and replace values like{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">YOUR_SHEET_ID</code>,{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">YOUR_DOC_ID</code>, or{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">YOUR_CHANNEL</code>{" "}
+          with your actual IDs from the URL of the respective tool.
         </p>
       </div>
 
-      {/* Step 4 — Test + Activate */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">4</div>
           <h3 className="font-semibold text-gray-900">Test manually, then activate</h3>
         </div>
         <p className="text-sm text-gray-500 ml-10">
-          In n8n, click <strong>Test workflow</strong> to do a manual run and verify each node produces the expected output. Once confirmed, toggle the workflow to <strong>Active</strong> — it will now run automatically on its trigger schedule.
+          In n8n, click <strong>Test workflow</strong> to do a manual run and verify each node. Once confirmed, toggle the workflow to <strong>Active</strong> — it will run automatically on its trigger schedule.
         </p>
       </div>
     </div>
   );
 }
+
+// ─── Opportunity card ─────────────────────────────────────────────────────────
 
 function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: boolean }) {
   return (
@@ -330,13 +485,14 @@ function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: bo
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function ResultPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [done, setDone] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
   useEffect(() => {
-    // Load real result from sessionStorage (set by BusinessForm after API call)
     const stored = sessionStorage.getItem("autoflow_result");
     if (stored) {
       try {
@@ -346,17 +502,13 @@ export default function ResultPage() {
       }
     }
 
-    // Run loading animation
     let accumulated = 0;
     const timers: ReturnType<typeof setTimeout>[] = [];
-
     loadingSteps.forEach((step, i) => {
       accumulated += step.duration;
       const t = setTimeout(() => {
         setCurrentStep(i + 1);
-        if (i === loadingSteps.length - 1) {
-          setTimeout(() => setDone(true), 300);
-        }
+        if (i === loadingSteps.length - 1) setTimeout(() => setDone(true), 300);
       }, accumulated);
       timers.push(t);
     });
@@ -364,10 +516,8 @@ export default function ResultPage() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  const totalHours = result?.opportunities.reduce(
-    (sum, o) => sum + o.estimated_hours_saved_per_week,
-    0
-  ) ?? 0;
+  const totalHours = result?.opportunities.reduce((s, o) => s + o.estimated_hours_saved_per_week, 0) ?? 0;
+  const annualSavings = totalHours * 50 * 52;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -387,7 +537,7 @@ export default function ResultPage() {
 
       <div className="max-w-3xl mx-auto px-6 py-16">
         {!done ? (
-          /* Loading State */
+          /* Loading */
           <div className="text-center">
             <div className="w-20 h-20 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-8 animate-pulse">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,7 +546,6 @@ export default function ResultPage() {
             </div>
             <h1 className="text-2xl font-bold mb-2">Building your automation plan...</h1>
             <p className="text-gray-500 mb-12">Claude AI is analyzing your business. This takes a few seconds.</p>
-
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-left max-w-md mx-auto">
               {loadingSteps.map((step, i) => (
                 <div key={i} className="flex items-center gap-4 py-3">
@@ -426,6 +575,7 @@ export default function ResultPage() {
         ) : (
           /* Results */
           <div>
+            {/* Header */}
             <div className="text-center mb-10">
               <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-6">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,9 +584,7 @@ export default function ResultPage() {
               </div>
               <h1 className="text-3xl font-bold mb-3">Your Automation Plan is Ready</h1>
               <p className="text-gray-500 max-w-lg mx-auto">
-                {result
-                  ? result.summary
-                  : "We've identified your top automation opportunities."}
+                {result ? result.summary : "We've identified your top automation opportunities."}
               </p>
             </div>
 
@@ -452,13 +600,13 @@ export default function ResultPage() {
                   <div className="text-xs text-gray-500 mt-1">Hours saved / week</div>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-500">1</div>
-                  <div className="text-xs text-gray-500 mt-1">Workflow built</div>
+                  <div className="text-2xl font-bold text-orange-500">${(annualSavings / 1000).toFixed(0)}K</div>
+                  <div className="text-xs text-gray-500 mt-1">Est. annual savings</div>
                 </div>
               </div>
             )}
 
-            {/* Workflow deployment status */}
+            {/* Workflow status banner */}
             {result?.workflow?.deployed && result.workflow.url ? (
               <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex gap-4 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
@@ -469,12 +617,8 @@ export default function ResultPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-green-900 text-sm">Live workflow deployed on n8n</p>
                   <p className="text-green-700 text-sm mt-0.5 mb-2">{result.workflow.name}</p>
-                  <a
-                    href={result.workflow.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 underline underline-offset-2 hover:text-green-900 break-all"
-                  >
+                  <a href={result.workflow.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 underline underline-offset-2 hover:text-green-900 break-all">
                     {result.workflow.url}
                     <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -491,9 +635,7 @@ export default function ResultPage() {
                 </div>
                 <div>
                   <p className="font-medium text-yellow-900 text-sm">Workflow analysis complete</p>
-                  <p className="text-yellow-700 text-sm mt-0.5">
-                    n8n deployment is pending. Your automation plan is ready below.
-                  </p>
+                  <p className="text-yellow-700 text-sm mt-0.5">n8n deployment is pending. Your automation plan is ready below.</p>
                 </div>
               </div>
             )}
@@ -506,6 +648,11 @@ export default function ResultPage() {
               ))}
             </div>
 
+            {/* Impact Charts — shown only when we have real data */}
+            {result && result.opportunities.length > 0 && (
+              <ImpactCharts opportunities={result.opportunities} />
+            )}
+
             {/* Setup Checklist */}
             {result && (
               <SetupChecklist
@@ -515,16 +662,12 @@ export default function ResultPage() {
             )}
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/form"
-                className="flex-1 text-center px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition-colors"
-              >
+              <Link href="/form"
+                className="flex-1 text-center px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition-colors">
                 Analyze Another Business
               </Link>
-              <Link
-                href="/"
-                className="flex-1 text-center px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors"
-              >
+              <Link href="/"
+                className="flex-1 text-center px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors">
                 Back to Home
               </Link>
             </div>
