@@ -15,11 +15,17 @@ export type DeployResult = {
 export async function deployWorkflow(
   workflowJson: Record<string, unknown>
 ): Promise<DeployResult> {
+  // Ensure settings is present — n8n 400s without it
+  const payload = {
+    ...workflowJson,
+    settings: workflowJson.settings ?? { executionOrder: "v1" },
+  };
+
   // 1. Create the workflow
   const createRes = await fetch(`${N8N_BASE_URL}/api/v1/workflows`, {
     method: "POST",
     headers,
-    body: JSON.stringify(workflowJson),
+    body: JSON.stringify(payload),
   });
 
   if (!createRes.ok) {
