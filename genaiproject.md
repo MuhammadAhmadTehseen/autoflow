@@ -141,8 +141,40 @@ Goal: Make the landing page look like a real SaaS product, not a student project
 
 ---
 
+---
+
+### Phase 9 — Technical Fixes ✅ DONE (2026-05-17)
+Goal: Fix core technical issues and make the pipeline more robust and accurate
+
+**Result persistence & real loading:**
+- [x] API call moved from `BusinessForm.tsx` to `result/page.tsx` — form just stores data + navigates
+- [x] Loading steps now driven by real API response: ticks at 2s / 6s / 12s, then snaps to done when API returns
+- [x] Result survives page interactions (no longer lost if API is slow)
+
+**Error handling:**
+- [x] Replaced `alert()` in BusinessForm with inline error banner (red, dismissible)
+- [x] Result page: proper "Session expired" screen if sessionStorage has no form data
+- [x] Result page: proper "Analysis failed" error screen with Try Again + Edit Form buttons (Try Again reuses saved form data — no re-fill needed)
+
+**Hourly rate for real cost calculations:**
+- [x] Added hourly rate picker to Step 4 of form: $25 / $50 / $75 / $100 / $150 / $200+/hr
+- [x] Rate passed via URL param (`/result?rate=75`) from form to result page
+- [x] Charts now use the user's actual rate instead of hardcoded $50 benchmark
+
+**Workflow templates expanded: 3 → 8:**
+- [x] Appointment Reminder Automation (daily schedule → Sheets filter → Gmail)
+- [x] Lead Enrichment & Qualification (Webhook → Claude score → IF → Slack/Sheets)
+- [x] Customer Support Email Triage (Gmail trigger → Claude classify → IF → Slack/auto-reply)
+- [x] Client Onboarding Sequence (Webhook → Gmail welcome → Sheets → Slack notify)
+- [x] Invoice Generation & Delivery (Sheets trigger → IF status=complete → Code → Gmail)
+- [x] Claude prompt updated to reference all 8 templates
+
+**Commit:** `feat: Phase 9 — technical fixes + 5 new workflow templates`
+
+---
+
 ### Upcoming Improvements (Backlog)
-- [ ] **Phase 9** — Technical fixes: result persistence (URL params vs sessionStorage), real loading progress tied to API, Resend production domain, proper error page, expand workflow templates 3 → 8+, hourly rate field in form for real cost calc
+- [ ] **Phase 10** — Resend production domain (so clients actually get the email, not just NOTIFY_EMAIL)
 
 ---
 
