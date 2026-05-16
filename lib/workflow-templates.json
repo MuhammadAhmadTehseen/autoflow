@@ -1,0 +1,326 @@
+{
+  "emailFollowup": {
+    "description": "Use this pattern when a lead or contact submits data via a form or external system and you need to immediately send them a personalized email and log the interaction. The Webhook receives the payload, a Code node formats the email body with the lead's details, Gmail sends it, and Google Sheets logs the record with a timestamp. Best for: lead intake, contact form responses, demo request confirmations.",
+    "workflow": {
+      "name": "Email Follow-up Automation",
+      "nodes": [
+        {
+          "id": "a1b2c3d4-0001-0001-0001-000000000001",
+          "name": "Webhook — Receive Lead",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [200, 300],
+          "parameters": {
+            "path": "lead-intake",
+            "httpMethod": "POST",
+            "responseMode": "lastNode",
+            "options": {}
+          }
+        },
+        {
+          "id": "a1b2c3d4-0002-0002-0002-000000000002",
+          "name": "Format Email Body",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [420, 300],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const name = $input.item.json.name || 'there';\nconst business = $input.item.json.business || 'your business';\nconst email = $input.item.json.email;\n\nconst subject = `Welcome to Soch Consulting, ${name}!`;\nconst body = `Hi ${name},\\n\\nThank you for reaching out! We're excited to learn more about ${business} and explore how we can help you grow.\\n\\nOur team will be in touch within 24 hours to schedule a discovery call.\\n\\nBest regards,\\nThe Soch Consulting Team`;\n\nreturn {\n  json: {\n    to: email,\n    subject,\n    body,\n    name,\n    business,\n    timestamp: new Date().toISOString()\n  }\n};"
+          }
+        },
+        {
+          "id": "a1b2c3d4-0003-0003-0003-000000000003",
+          "name": "Send Follow-up Email",
+          "type": "n8n-nodes-base.gmail",
+          "typeVersion": 2,
+          "position": [640, 300],
+          "parameters": {
+            "operation": "send",
+            "toList": "={{ $json.to }}",
+            "subject": "={{ $json.subject }}",
+            "message": "={{ $json.body }}",
+            "options": {}
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "GMAIL_CREDENTIAL_ID",
+              "name": "Gmail account"
+            }
+          }
+        },
+        {
+          "id": "a1b2c3d4-0004-0004-0004-000000000004",
+          "name": "Log Lead to Sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4,
+          "position": [860, 300],
+          "parameters": {
+            "operation": "append",
+            "documentId": "YOUR_GOOGLE_SHEET_ID",
+            "sheetName": "Leads",
+            "mappingMode": "autoMapInputData",
+            "options": {}
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "SHEETS_CREDENTIAL_ID",
+              "name": "Google Sheets account"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Webhook — Receive Lead": {
+          "main": [
+            [{ "node": "Format Email Body", "type": "main", "index": 0 }]
+          ]
+        },
+        "Format Email Body": {
+          "main": [
+            [{ "node": "Send Follow-up Email", "type": "main", "index": 0 }]
+          ]
+        },
+        "Send Follow-up Email": {
+          "main": [
+            [{ "node": "Log Lead to Sheet", "type": "main", "index": 0 }]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1"
+      }
+    }
+  },
+
+  "captionGenerator": {
+    "description": "Use this pattern when you want to auto-generate social media content whenever a new row is added to a Google Sheet. The Sheets trigger fires on each new row containing topic or product info, an HTTP Request calls the Claude API to generate a caption, a Code node extracts the text from Claude's response, and Slack posts it to a team channel. Best for: content calendars, product launch announcements, scheduled social posts.",
+    "workflow": {
+      "name": "Social Media Caption Generator",
+      "nodes": [
+        {
+          "id": "b2c3d4e5-0001-0001-0001-000000000001",
+          "name": "Sheets Trigger — New Row",
+          "type": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 4,
+          "position": [200, 300],
+          "parameters": {
+            "documentId": "YOUR_GOOGLE_SHEET_ID",
+            "sheetName": "Content Queue",
+            "event": "rowAdded",
+            "pollTimes": {
+              "item": [{ "mode": "everyMinute" }]
+            },
+            "options": {}
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "SHEETS_CREDENTIAL_ID",
+              "name": "Google Sheets account"
+            }
+          }
+        },
+        {
+          "id": "b2c3d4e5-0002-0002-0002-000000000002",
+          "name": "Call Claude — Generate Caption",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [420, 300],
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/v1/messages",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+                { "name": "anthropic-version", "value": "2023-06-01" },
+                { "name": "content-type", "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "contentType": "json",
+            "specifyBody": "json",
+            "jsonBody": "={{ { \"model\": \"claude-opus-4-5\", \"max_tokens\": 300, \"messages\": [ { \"role\": \"user\", \"content\": \"Write a compelling LinkedIn caption for this topic: \" + $json.topic + \". Product/context: \" + $json.product + \". Keep it under 150 words, include 3 relevant hashtags, and end with a question to drive engagement.\" } ] } }}",
+            "options": {
+              "retry": {
+                "enabled": true,
+                "maxTries": 3,
+                "waitBetweenTries": 2000
+              }
+            }
+          }
+        },
+        {
+          "id": "b2c3d4e5-0003-0003-0003-000000000003",
+          "name": "Extract Caption Text",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [640, 300],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const response = $input.item.json;\nconst caption = response.content?.[0]?.text || 'Caption generation failed.';\n\nreturn {\n  json: {\n    caption,\n    topic: $input.item.json.topic || '',\n    generatedAt: new Date().toISOString()\n  }\n};"
+          }
+        },
+        {
+          "id": "b2c3d4e5-0004-0004-0004-000000000004",
+          "name": "Post to Slack",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2,
+          "position": [860, 300],
+          "parameters": {
+            "operation": "post",
+            "channel": "#content-team",
+            "text": "={{ '📝 New caption generated for: *' + $json.topic + '*\\n\\n' + $json.caption }}",
+            "otherOptions": {}
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "SLACK_CREDENTIAL_ID",
+              "name": "Slack account"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Sheets Trigger — New Row": {
+          "main": [
+            [{ "node": "Call Claude — Generate Caption", "type": "main", "index": 0 }]
+          ]
+        },
+        "Call Claude — Generate Caption": {
+          "main": [
+            [{ "node": "Extract Caption Text", "type": "main", "index": 0 }]
+          ]
+        },
+        "Extract Caption Text": {
+          "main": [
+            [{ "node": "Post to Slack", "type": "main", "index": 0 }]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1"
+      }
+    }
+  },
+
+  "weeklyReport": {
+    "description": "Use this pattern for any recurring automated report that pulls data from a source, summarizes it with AI, and delivers it via email. The Schedule trigger fires on a cron schedule, Google Sheets reads the relevant rows, an HTTP Request sends the raw data to Claude for summarization, and Gmail emails the formatted report to recipients. Best for: weekly performance digests, Monday morning briefings, end-of-month summaries.",
+    "workflow": {
+      "name": "Weekly Report Generator",
+      "nodes": [
+        {
+          "id": "c3d4e5f6-0001-0001-0001-000000000001",
+          "name": "Schedule — Every Monday 9am",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "position": [200, 300],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 9 * * 1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "c3d4e5f6-0002-0002-0002-000000000002",
+          "name": "Read Last Week Data",
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4,
+          "position": [420, 300],
+          "parameters": {
+            "operation": "read",
+            "documentId": "YOUR_GOOGLE_SHEET_ID",
+            "sheetName": "Weekly Metrics",
+            "options": {
+              "returnAllMatches": true
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "SHEETS_CREDENTIAL_ID",
+              "name": "Google Sheets account"
+            }
+          }
+        },
+        {
+          "id": "c3d4e5f6-0003-0003-0003-000000000003",
+          "name": "Summarize with Claude",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [640, 300],
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/v1/messages",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+                { "name": "anthropic-version", "value": "2023-06-01" },
+                { "name": "content-type", "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "contentType": "json",
+            "specifyBody": "json",
+            "jsonBody": "={{ { \"model\": \"claude-opus-4-5\", \"max_tokens\": 800, \"messages\": [ { \"role\": \"user\", \"content\": \"You are a business analyst. Here is last week's performance data from our tracking sheet:\\n\\n\" + JSON.stringify($input.all().map(i => i.json)) + \"\\n\\nWrite a concise weekly report with: 1) Key highlights (3 bullet points), 2) Areas needing attention, 3) One recommended action for next week. Format it clearly for an email.\" } ] } }}",
+            "options": {
+              "retry": {
+                "enabled": true,
+                "maxTries": 3,
+                "waitBetweenTries": 2000
+              }
+            }
+          }
+        },
+        {
+          "id": "c3d4e5f6-0004-0004-0004-000000000004",
+          "name": "Email Report to Team",
+          "type": "n8n-nodes-base.gmail",
+          "typeVersion": 2,
+          "position": [860, 300],
+          "parameters": {
+            "operation": "send",
+            "toList": "team@yourcompany.com",
+            "subject": "={{ 'Weekly Performance Report — ' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}",
+            "message": "={{ $json.content[0].text }}",
+            "options": {}
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "GMAIL_CREDENTIAL_ID",
+              "name": "Gmail account"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Schedule — Every Monday 9am": {
+          "main": [
+            [{ "node": "Read Last Week Data", "type": "main", "index": 0 }]
+          ]
+        },
+        "Read Last Week Data": {
+          "main": [
+            [{ "node": "Summarize with Claude", "type": "main", "index": 0 }]
+          ]
+        },
+        "Summarize with Claude": {
+          "main": [
+            [{ "node": "Email Report to Team", "type": "main", "index": 0 }]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1"
+      }
+    }
+  }
+}
