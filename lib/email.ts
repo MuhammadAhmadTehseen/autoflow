@@ -146,12 +146,26 @@ export async function sendResultEmail({
   workflowUrl: string | null;
 }): Promise<void> {
   const notifyEmail = process.env.NOTIFY_EMAIL ?? "imurtaza544@gmail.com";
+  const fromEmail = process.env.RESEND_FROM_EMAIL; // e.g. "autoflow@withsoch.com" — set once domain is verified
   const html = buildHtml({ clientName, businessName, summary, opportunities, workflowName, workflowUrl });
 
-  await resend.emails.send({
-    from: "AutoFlow <onboarding@resend.dev>",
-    to: [notifyEmail],
-    subject: `Your Automation Plan is Ready — ${businessName} (${clientEmail})`,
-    html,
-  });
+  if (fromEmail) {
+    // Production mode — domain verified, send directly to client
+    await resend.emails.send({
+      from: `AutoFlow <${fromEmail}>`,
+      to: [clientEmail],
+      cc: [notifyEmail],
+      replyTo: notifyEmail,
+      subject: `Your Automation Plan is Ready — ${businessName}`,
+      html,
+    });
+  } else {
+    // Sandbox mode — Resend only allows sending to verified addresses
+    await resend.emails.send({
+      from: "AutoFlow <onboarding@resend.dev>",
+      to: [notifyEmail],
+      subject: `[AutoFlow] Plan ready for ${businessName} (submitted by ${clientEmail})`,
+      html,
+    });
+  }
 }
