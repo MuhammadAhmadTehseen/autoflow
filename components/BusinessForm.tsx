@@ -3,65 +3,125 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const industries = [
   "E-commerce", "Consulting", "Marketing Agency", "SaaS / Tech",
-  "Healthcare", "Education", "Real Estate", "Finance", "Other",
+  "Healthcare", "Education", "Real Estate", "Finance",
+  "Legal", "Logistics & Supply Chain", "Recruitment / HR",
+  "Media & Publishing", "Non-profit", "Restaurant & Food",
+  "Construction", "Manufacturing", "Travel & Hospitality", "Other",
+];
+
+const revenueModels = [
+  "Subscription / Retainer", "One-time / Project-based",
+  "Hourly / Daily rate", "Commission / Revenue share",
+  "Product sales", "Freemium", "Mixed",
 ];
 
 const toolOptions = [
-  "Gmail", "Google Sheets", "Google Drive", "Notion", "Slack",
-  "WhatsApp", "Trello", "Airtable", "HubSpot", "Shopify",
-  "WordPress", "LinkedIn", "Instagram", "Canva", "Zapier",
+  // Communication
+  "Gmail", "Outlook", "Slack", "WhatsApp", "Telegram", "Discord", "Zoom", "Google Meet",
+  // Docs & Storage
+  "Google Drive", "Google Docs", "Google Sheets", "Notion", "OneDrive", "Dropbox", "Airtable",
+  // CRM & Sales
+  "HubSpot", "Salesforce", "Pipedrive", "Close CRM", "Zoho CRM",
+  // Project Management
+  "Trello", "Asana", "ClickUp", "Monday.com", "Jira", "Basecamp",
+  // Marketing
+  "Mailchimp", "ActiveCampaign", "ConvertKit", "LinkedIn", "Instagram", "Facebook Ads", "Google Ads",
+  // E-commerce & Payments
+  "Shopify", "WooCommerce", "Stripe", "PayPal", "QuickBooks", "Xero",
+  // Design & Content
+  "Canva", "Figma", "WordPress", "Webflow",
+  // Research & Data
+  "Google Analytics", "Semrush", "Typeform", "Calendly", "Zapier",
 ];
 
 const manualTaskOptions = [
+  // Content & Writing
   "Writing social media captions",
+  "Writing blog posts or articles",
+  "Writing proposals or quotes",
+  "Translating or summarizing documents",
+  "SEO content writing",
+  // Customer & Sales
   "Replying to customer inquiries",
-  "Creating reports or summaries",
   "Sending follow-up emails",
+  "Onboarding new clients",
+  "Managing customer feedback",
+  "Lead research & outreach",
+  // Operations
+  "Creating reports or summaries",
   "Scheduling meetings",
   "Updating spreadsheets",
-  "SEO content writing",
-  "Lead research & outreach",
-  "Invoicing & payments",
   "Data entry",
+  "Invoicing & payments",
+  "Tracking KPIs and metrics",
+  // Research
+  "Researching competitors",
+  "Monitoring news & trends",
+  "Compiling market research",
+  "Scraping data from websites",
+];
+
+const automationGoals = [
+  "Save time on repetitive work",
+  "Reduce human errors",
+  "Scale without hiring more staff",
+  "Cut operational costs",
+  "Improve customer experience",
+  "Get better data & reporting",
+  "Respond faster to clients/leads",
 ];
 
 type FormData = {
   name: string;
   email: string;
   businessName: string;
+  website: string;
   businessDescription: string;
   industry: string;
   businessModel: string;
+  revenueModel: string;
+  targetCustomers: string;
   teamSize: string;
   tools: string[];
+  otherTools: string;
   manualTasks: string[];
   otherManualTasks: string;
   hoursPerWeek: string;
   biggestFrustration: string;
+  automationGoals: string[];
+  specificWish: string;
+  additionalContext: string;
 };
 
 const initialData: FormData = {
   name: "",
   email: "",
   businessName: "",
+  website: "",
   businessDescription: "",
   industry: "",
   businessModel: "",
+  revenueModel: "",
+  targetCustomers: "",
   teamSize: "",
   tools: [],
+  otherTools: "",
   manualTasks: [],
   otherManualTasks: "",
   hoursPerWeek: "",
   biggestFrustration: "",
+  automationGoals: [],
+  specificWish: "",
+  additionalContext: "",
 };
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-2 mb-8 flex-wrap">
       {Array.from({ length: total }).map((_, i) => (
         <div key={i} className="flex items-center gap-2">
           <div
@@ -82,7 +142,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             )}
           </div>
           {i < total - 1 && (
-            <div className={`h-0.5 w-8 sm:w-16 rounded ${i + 1 < current ? "bg-indigo-600" : "bg-gray-100"}`} />
+            <div className={`h-0.5 w-6 sm:w-12 rounded ${i + 1 < current ? "bg-indigo-600" : "bg-gray-100"}`} />
           )}
         </div>
       ))}
@@ -91,19 +151,15 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 }
 
 function ToggleChip({
-  label,
-  selected,
-  onClick,
+  label, selected, onClick,
 }: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
+  label: string; selected: boolean; onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
         selected
           ? "bg-indigo-600 text-white border-indigo-600"
           : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
@@ -111,6 +167,23 @@ function ToggleChip({
     >
       {label}
     </button>
+  );
+}
+
+function inputClass() {
+  return "w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+}
+
+function textareaClass() {
+  return `${inputClass()} resize-none`;
+}
+
+function Label({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
+  return (
+    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      {children}
+      {optional && <span className="text-gray-400 font-normal ml-1">(optional)</span>}
+    </label>
   );
 }
 
@@ -123,9 +196,9 @@ export default function BusinessForm() {
   const update = (field: keyof FormData, value: string | string[]) =>
     setData((prev) => ({ ...prev, [field]: value }));
 
-  const toggleArray = (field: "tools" | "manualTasks", value: string) => {
+  const toggleArray = (field: "tools" | "manualTasks" | "automationGoals", value: string) => {
     setData((prev) => {
-      const arr = prev[field];
+      const arr = prev[field] as string[];
       return {
         ...prev,
         [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value],
@@ -164,6 +237,7 @@ export default function BusinessForm() {
     "About Your Business",
     "Tools & Team",
     "Pain Points",
+    "Goals & Preferences",
     "Review & Submit",
   ];
 
@@ -180,34 +254,24 @@ export default function BusinessForm() {
       {step === 1 && (
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Your name</label>
-            <input
-              type="text"
-              value={data.name}
-              onChange={(e) => update("name", e.target.value)}
-              placeholder="Ahmad Tehseen"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            <Label>Your name</Label>
+            <input type="text" value={data.name} onChange={(e) => update("name", e.target.value)}
+              placeholder="Ahmad Tehseen" className={inputClass()} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
-            <input
-              type="email"
-              value={data.email}
-              onChange={(e) => update("email", e.target.value)}
-              placeholder="you@example.com"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            <Label>Email address</Label>
+            <input type="email" value={data.email} onChange={(e) => update("email", e.target.value)}
+              placeholder="you@example.com" className={inputClass()} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Business name</label>
-            <input
-              type="text"
-              value={data.businessName}
-              onChange={(e) => update("businessName", e.target.value)}
-              placeholder="Acme Inc."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            <Label>Business name</Label>
+            <input type="text" value={data.businessName} onChange={(e) => update("businessName", e.target.value)}
+              placeholder="Acme Inc." className={inputClass()} />
+          </div>
+          <div>
+            <Label optional>Website URL</Label>
+            <input type="url" value={data.website} onChange={(e) => update("website", e.target.value)}
+              placeholder="https://yourwebsite.com" className={inputClass()} />
           </div>
         </div>
       )}
@@ -216,42 +280,40 @@ export default function BusinessForm() {
       {step === 2 && (
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              What does your business do?
-            </label>
-            <textarea
-              value={data.businessDescription}
-              onChange={(e) => update("businessDescription", e.target.value)}
-              placeholder="We help small businesses grow their social media presence by creating and scheduling content..."
-              rows={4}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-            />
+            <Label>What does your business do?</Label>
+            <textarea value={data.businessDescription} onChange={(e) => update("businessDescription", e.target.value)}
+              placeholder="Describe your business, what you sell or offer, how you deliver value to customers, and how you currently operate day-to-day..."
+              rows={5} className={textareaClass()} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Industry</label>
             <div className="flex flex-wrap gap-2">
               {industries.map((ind) => (
-                <ToggleChip
-                  key={ind}
-                  label={ind}
-                  selected={data.industry === ind}
-                  onClick={() => update("industry", ind)}
-                />
+                <ToggleChip key={ind} label={ind} selected={data.industry === ind} onClick={() => update("industry", ind)} />
               ))}
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Business model</label>
             <div className="flex flex-wrap gap-2">
-              {["B2B", "B2C", "Both"].map((model) => (
-                <ToggleChip
-                  key={model}
-                  label={model}
-                  selected={data.businessModel === model}
-                  onClick={() => update("businessModel", model)}
-                />
+              {["B2B", "B2C", "B2B2C", "Marketplace", "D2C"].map((model) => (
+                <ToggleChip key={model} label={model} selected={data.businessModel === model} onClick={() => update("businessModel", model)} />
               ))}
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Revenue model</label>
+            <div className="flex flex-wrap gap-2">
+              {revenueModels.map((r) => (
+                <ToggleChip key={r} label={r} selected={data.revenueModel === r} onClick={() => update("revenueModel", r)} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label optional>Who are your target customers?</Label>
+            <input type="text" value={data.targetCustomers} onChange={(e) => update("targetCustomers", e.target.value)}
+              placeholder="e.g. Small business owners in Pakistan, SaaS founders, dental clinics..."
+              className={inputClass()} />
           </div>
         </div>
       )}
@@ -263,12 +325,7 @@ export default function BusinessForm() {
             <label className="block text-sm font-medium text-gray-700 mb-3">Team size</label>
             <div className="flex flex-wrap gap-2">
               {["Just me", "2–5", "6–15", "16–50", "50+"].map((size) => (
-                <ToggleChip
-                  key={size}
-                  label={size}
-                  selected={data.teamSize === size}
-                  onClick={() => update("teamSize", size)}
-                />
+                <ToggleChip key={size} label={size} selected={data.teamSize === size} onClick={() => update("teamSize", size)} />
               ))}
             </div>
           </div>
@@ -279,14 +336,15 @@ export default function BusinessForm() {
             </label>
             <div className="flex flex-wrap gap-2">
               {toolOptions.map((tool) => (
-                <ToggleChip
-                  key={tool}
-                  label={tool}
-                  selected={data.tools.includes(tool)}
-                  onClick={() => toggleArray("tools", tool)}
-                />
+                <ToggleChip key={tool} label={tool} selected={data.tools.includes(tool)} onClick={() => toggleArray("tools", tool)} />
               ))}
             </div>
+          </div>
+          <div>
+            <Label optional>Any other tools not listed above?</Label>
+            <input type="text" value={data.otherTools} onChange={(e) => update("otherTools", e.target.value)}
+              placeholder="e.g. Custom CRM, internal dashboards, industry-specific software..."
+              className={inputClass()} />
           </div>
         </div>
       )}
@@ -301,26 +359,15 @@ export default function BusinessForm() {
             </label>
             <div className="flex flex-wrap gap-2">
               {manualTaskOptions.map((task) => (
-                <ToggleChip
-                  key={task}
-                  label={task}
-                  selected={data.manualTasks.includes(task)}
-                  onClick={() => toggleArray("manualTasks", task)}
-                />
+                <ToggleChip key={task} label={task} selected={data.manualTasks.includes(task)} onClick={() => toggleArray("manualTasks", task)} />
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Anything else? <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={data.otherManualTasks}
-              onChange={(e) => update("otherManualTasks", e.target.value)}
-              placeholder="e.g. manually tracking orders in a spreadsheet..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            <Label optional>Describe any other manual tasks in detail</Label>
+            <textarea value={data.otherManualTasks} onChange={(e) => update("otherManualTasks", e.target.value)}
+              placeholder="e.g. Every Monday I manually pull data from 3 sources, paste into a spreadsheet, write a summary, and email it to 5 people. Takes 3 hours..."
+              rows={3} className={textareaClass()} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -328,33 +375,51 @@ export default function BusinessForm() {
             </label>
             <div className="flex flex-wrap gap-2">
               {["Less than 2", "2–5 hrs", "5–10 hrs", "10–20 hrs", "20+ hrs"].map((h) => (
-                <ToggleChip
-                  key={h}
-                  label={h}
-                  selected={data.hoursPerWeek === h}
-                  onClick={() => update("hoursPerWeek", h)}
-                />
+                <ToggleChip key={h} label={h} selected={data.hoursPerWeek === h} onClick={() => update("hoursPerWeek", h)} />
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              What is your biggest operational frustration?
-            </label>
-            <textarea
-              value={data.biggestFrustration}
-              onChange={(e) => update("biggestFrustration", e.target.value)}
-              placeholder="We spend hours every week writing the same types of emails..."
-              rows={3}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-            />
+            <Label>What is your biggest operational frustration?</Label>
+            <textarea value={data.biggestFrustration} onChange={(e) => update("biggestFrustration", e.target.value)}
+              placeholder="Describe the most painful, time-consuming, or error-prone part of your workflow. Be specific — the more detail, the better the automation plan..."
+              rows={4} className={textareaClass()} />
           </div>
         </div>
       )}
 
-      {/* Step 5: Review */}
+      {/* Step 5: Goals & Preferences */}
       {step === 5 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              What are your goals for automation?{" "}
+              <span className="text-gray-400 font-normal">(select all that apply)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {automationGoals.map((goal) => (
+                <ToggleChip key={goal} label={goal} selected={data.automationGoals.includes(goal)} onClick={() => toggleArray("automationGoals", goal)} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label optional>Is there a specific workflow you want automated?</Label>
+            <textarea value={data.specificWish} onChange={(e) => update("specificWish", e.target.value)}
+              placeholder="e.g. I want to automatically pull competitor pricing from their websites every week and get a summary in my Slack channel. Or: when a lead fills my Typeform, add to HubSpot and send a follow-up email..."
+              rows={4} className={textareaClass()} />
+          </div>
+          <div>
+            <Label optional>Anything else Claude should know?</Label>
+            <textarea value={data.additionalContext} onChange={(e) => update("additionalContext", e.target.value)}
+              placeholder="Budget constraints, technical limitations, past automation attempts, preferred tools, specific integrations you need, compliance requirements..."
+              rows={3} className={textareaClass()} />
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: Review */}
+      {step === 6 && (
+        <div className="space-y-1">
           <p className="text-gray-500 text-sm mb-6">
             Review your information before we analyze and build your automation plan.
           </p>
@@ -362,26 +427,40 @@ export default function BusinessForm() {
             { label: "Name", value: data.name },
             { label: "Email", value: data.email },
             { label: "Business", value: data.businessName },
+            { label: "Website", value: data.website },
             { label: "Industry", value: data.industry },
-            { label: "Model", value: data.businessModel },
+            { label: "Model", value: [data.businessModel, data.revenueModel].filter(Boolean).join(" · ") },
+            { label: "Target customers", value: data.targetCustomers },
             { label: "Team size", value: data.teamSize },
-            { label: "Tools", value: data.tools.join(", ") || "—" },
+            { label: "Tools", value: [...data.tools, data.otherTools].filter(Boolean).join(", ") || "—" },
             {
               label: "Manual tasks",
-              value:
-                [...data.manualTasks, data.otherManualTasks].filter(Boolean).join(", ") || "—",
+              value: [...data.manualTasks, data.otherManualTasks].filter(Boolean).join(", ") || "—",
             },
             { label: "Hours/week", value: data.hoursPerWeek },
+            { label: "Goals", value: data.automationGoals.join(", ") || "—" },
           ].map(({ label, value }) => (
             <div key={label} className="flex gap-4 py-3 border-b border-gray-100">
-              <span className="text-sm font-medium text-gray-500 w-32 shrink-0">{label}</span>
+              <span className="text-sm font-medium text-gray-500 w-36 shrink-0">{label}</span>
               <span className="text-sm text-gray-900">{value || "—"}</span>
             </div>
           ))}
           {data.biggestFrustration && (
-            <div className="flex gap-4 py-3">
-              <span className="text-sm font-medium text-gray-500 w-32 shrink-0">Frustration</span>
+            <div className="flex gap-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-500 w-36 shrink-0">Frustration</span>
               <span className="text-sm text-gray-900">{data.biggestFrustration}</span>
+            </div>
+          )}
+          {data.specificWish && (
+            <div className="flex gap-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-medium text-gray-500 w-36 shrink-0">Specific wish</span>
+              <span className="text-sm text-gray-900">{data.specificWish}</span>
+            </div>
+          )}
+          {data.additionalContext && (
+            <div className="flex gap-4 py-3">
+              <span className="text-sm font-medium text-gray-500 w-36 shrink-0">Extra context</span>
+              <span className="text-sm text-gray-900">{data.additionalContext}</span>
             </div>
           )}
         </div>

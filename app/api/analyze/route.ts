@@ -20,15 +20,21 @@ export async function POST(req: NextRequest) {
     // Step 1: Map form fields to Claude's expected shape
     const profile = {
       business_name: formData.businessName,
+      website: formData.website || "",
       description: formData.businessDescription,
       industry: formData.industry || "Not specified",
       business_model: formData.businessModel || "Not specified",
+      revenue_model: formData.revenueModel || "Not specified",
+      target_customers: formData.targetCustomers || "",
       team_size: formData.teamSize || "Not specified",
-      tools: formData.tools || [],
+      tools: [...(formData.tools as string[] || []), ...(formData.otherTools ? [formData.otherTools as string] : [])],
       manual_tasks: formData.manualTasks || [],
       other_manual_tasks: formData.otherManualTasks || "",
       hours_per_week: formData.hoursPerWeek || "Not specified",
       biggest_frustration: formData.biggestFrustration || "",
+      automation_goals: formData.automationGoals || [],
+      specific_wish: formData.specificWish || "",
+      additional_context: formData.additionalContext || "",
     };
 
     // Step 2: Analyze with Claude → get opportunities + workflow JSON
