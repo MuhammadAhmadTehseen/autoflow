@@ -31,15 +31,17 @@ User fills form (Next.js)
 
 ---
 
-### Phase 2 — Claude Integration 🔄 IN PROGRESS
+### Phase 2 — Claude Integration ✅ DONE
 Goal: Send form data to Claude, get back structured analysis + n8n workflow JSON
 
 **Tasks:**
-- [ ] Create `lib/claude.ts` — Claude API call with researched prompt
-- [ ] Create `/app/api/analyze/route.ts` — main API endpoint
-- [ ] Load workflow-templates.json as few-shot examples in prompt
-- [ ] Parse + validate Claude JSON response
-- [ ] Return structured `{ opportunities, workflow, summary }` to frontend
+- [x] Create `lib/claude.ts` — Claude API call with researched prompt
+- [x] Create `/app/api/analyze/route.ts` — main API endpoint
+- [x] Load workflow-templates.json as few-shot examples in prompt
+- [x] Parse + validate Claude JSON response (with retry on bad JSON)
+- [x] Return structured `{ opportunities, workflow, summary }` to frontend
+- [x] BusinessForm now POSTs to `/api/analyze` on submit
+- [x] Result page shows real Claude output (opportunities + summary)
 
 **Research done:**
 - [x] Best Claude prompt designed (XML-wrapped, few-shot, temperature: 0)
