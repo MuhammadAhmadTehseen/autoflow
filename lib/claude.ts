@@ -119,19 +119,18 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
         role: "user",
         content: JSON.stringify(formData),
       },
-      {
-        role: "assistant",
-        content: "{",
-      },
     ],
   });
 
-  const rawText = "{" + (response.content[0] as { text: string }).text;
+  const rawText = (response.content[0] as { text: string }).text.trim();
+
+  // Strip markdown code fences if Claude wraps the JSON
+  const cleaned = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
 
   try {
-    return JSON.parse(rawText) as AnalysisResult;
+    return JSON.parse(cleaned) as AnalysisResult;
   } catch {
-    // Retry: ask Claude to fix the JSON
+    // Retry: ask Claude to return clean JSON
     const retryResponse = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4000,
@@ -143,12 +142,12 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
         {
           role: "user",
           content:
-            "Your previous response was not valid JSON. Return only the raw JSON object starting with { and ending with }. No markdown, no explanation.",
+            "Your previous response was not valid JSON. Return only the raw JSON object starting with { and ending with }. No markdown fences, no explanation.",
         },
-        { role: "assistant", content: "{" },
       ],
     });
-    const retryText = "{" + (retryResponse.content[0] as { text: string }).text;
-    return JSON.parse(retryText) as AnalysisResult;
+    const retryRaw = (retryResponse.content[0] as { text: string }).text.trim();
+    const retryCleaned = retryRaw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    return JSON.parse(retryCleaned) as AnalysisResult;
   }
 }
