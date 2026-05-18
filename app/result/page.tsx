@@ -451,7 +451,26 @@ function SetupChecklist({
 
 // ─── Opportunity card ─────────────────────────────────────────────────────────
 
-function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: boolean }) {
+function OpportunityCard({
+  opp,
+  isTop,
+  onBuildWorkflow,
+}: {
+  opp: AutomationOpportunity;
+  isTop: boolean;
+  onBuildWorkflow?: () => void;
+}) {
+  const [building, setBuilding] = useState(false);
+  const [built, setBuilt] = useState(false);
+
+  const handleBuild = () => {
+    if (onBuildWorkflow) {
+      setBuilding(true);
+      onBuildWorkflow();
+      setTimeout(() => { setBuilding(false); setBuilt(true); }, 1500);
+    }
+  };
+
   return (
     <div className={`bg-white rounded-2xl border shadow-sm p-6 ${isTop ? "border-indigo-200 ring-1 ring-indigo-100" : "border-gray-100"}`}>
       <div className="flex items-start justify-between gap-4 mb-3">
@@ -482,11 +501,45 @@ function OpportunityCard({ opp, isTop }: { opp: AutomationOpportunity; isTop: bo
         </span>
       </div>
 
-      {isTop && (
+      {isTop ? (
         <div className="mt-4 pt-4 border-t border-indigo-100">
           <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
             Workflow built for this opportunity
           </span>
+        </div>
+      ) : (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {built ? (
+            <div className="flex items-center gap-2 text-green-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs font-semibold">Building workflow — redirecting...</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleBuild}
+              disabled={building}
+              className="flex items-center gap-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
+            >
+              {building ? (
+                <>
+                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Initialising...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Build Workflow for This →
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -719,7 +772,21 @@ function ResultPageInner() {
             <h2 className="text-xl font-bold mb-5">Your Top Automation Opportunities</h2>
             <div className="space-y-4 mb-10">
               {(result?.opportunities ?? []).map((opp) => (
-                <OpportunityCard key={opp.rank} opp={opp} isTop={opp.rank === 1} />
+                <OpportunityCard
+                  key={opp.rank}
+                  opp={opp}
+                  isTop={opp.rank === 1}
+                  onBuildWorkflow={opp.rank !== 1 ? () => {
+                    const raw = sessionStorage.getItem("autoflow_form_data");
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    data.requested_opportunity = opp.rank;
+                    data.additionalContext = (data.additionalContext || "") +
+                      ` IMPORTANT: Build the n8n workflow for this automation: "${opp.title}" — ${opp.description}`;
+                    sessionStorage.setItem("autoflow_form_data", JSON.stringify(data));
+                    window.location.href = `/result?rate=${encodeURIComponent(rawRate || "$50/hr")}`;
+                  } : undefined}
+                />
               ))}
             </div>
 
