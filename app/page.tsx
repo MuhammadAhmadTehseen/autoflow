@@ -271,12 +271,16 @@ export default function Home() {
             </div>
             <span className="font-bold text-lg tracking-tight">AutoFlow</span>
           </div>
-          <Link
-            href="/form"
-            className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Analyze My Business
-          </Link>
+          <div className="flex items-center gap-4">
+            <a href="#pricing" className="text-sm text-gray-600 font-medium hover:text-gray-900 transition-colors hidden sm:block">Pricing</a>
+            <a href="#contact" className="text-sm text-gray-600 font-medium hover:text-gray-900 transition-colors hidden sm:block">Contact</a>
+            <Link
+              href="/form"
+              className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Analyze My Business
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -420,6 +424,114 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* Pricing */}
+      <section id="pricing" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">Simple, transparent pricing</h2>
+            <p className="text-gray-500 text-lg">In Pakistani Rupees · Cancel anytime · No hidden fees</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 items-stretch">
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 flex flex-col shadow-sm hover:shadow-md transition-all">
+              <div className="mb-6">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Starter</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-bold text-gray-900">Rs 14,000</span>
+                  <span className="text-gray-400 text-sm mb-1">/mo</span>
+                </div>
+                <p className="text-xs text-gray-400">approx $50 USD</p>
+              </div>
+              <ul className="space-y-3 mb-8 flex-1">
+                {["1 active workflow", "Up to 5 automations", "Gmail + Sheets integrations", "Email support (48h response)", "Free setup and onboarding", "Monthly usage report"].map((feat) => (
+                  <li key={feat} className="flex items-center gap-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+              <a href="/form" className="block text-center border border-indigo-600 text-indigo-600 font-semibold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors text-sm">Get Started</a>
+            </div>
+            <div className="bg-indigo-600 rounded-2xl p-8 flex flex-col shadow-xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Most Popular</div>
+              <div className="mb-6">
+                <p className="text-sm font-semibold text-indigo-200 uppercase tracking-widest mb-2">Growth</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-bold text-white">Rs 35,000</span>
+                  <span className="text-indigo-300 text-sm mb-1">/mo</span>
+                </div>
+                <p className="text-xs text-indigo-300">approx $125 USD</p>
+              </div>
+              <ul className="space-y-3 mb-8 flex-1">
+                {["5 active workflows", "Unlimited automations", "Slack, HubSpot, CRM integrations", "Priority support (12h response)", "Custom workflow builds", "Weekly performance reports", "Apify scraping included"].map((feat) => (
+                  <li key={feat} className="flex items-center gap-2 text-sm text-indigo-100">
+                    <svg className="w-4 h-4 text-indigo-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+              <a href="/form" className="block text-center bg-white text-indigo-600 font-semibold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors text-sm">Get Started</a>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 flex flex-col shadow-sm hover:shadow-md transition-all">
+              <div className="mb-6">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Scale</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-bold text-gray-900">Rs 85,000</span>
+                  <span className="text-gray-400 text-sm mb-1">/mo</span>
+                </div>
+                <p className="text-xs text-gray-400">approx $300 USD</p>
+              </div>
+              <ul className="space-y-3 mb-8 flex-1">
+                {["Unlimited workflows", "Dedicated account manager", "Custom AI model training", "24h SLA guarantee", "White-label reports", "On-call debugging support", "Quarterly automation audit"].map((feat) => (
+                  <li key={feat} className="flex items-center gap-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+              <a href="mailto:sales@autoflow.io" className="block text-center border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm">Contact Sales</a>
+            </div>
+          </div>
+          <p className="text-center text-xs text-gray-400 mt-8">All plans include a 7-day free trial. Payments accepted via bank transfer or JazzCash.</p>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="py-20 px-6 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Get in touch</h2>
+            <p className="text-gray-500 text-lg">Have a question or want a custom plan? We respond within 24 hours.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">General</h3>
+              <a href="mailto:hello@autoflow.io" className="text-indigo-600 text-sm font-medium hover:underline">hello@autoflow.io</a>
+              <p className="text-xs text-gray-400 mt-1">Enquiries and partnerships</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Support</h3>
+              <a href="mailto:support@autoflow.io" className="text-indigo-600 text-sm font-medium hover:underline">support@autoflow.io</a>
+              <p className="text-xs text-gray-400 mt-1">Technical issues and workflow help</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Sales</h3>
+              <a href="mailto:sales@autoflow.io" className="text-indigo-600 text-sm font-medium hover:underline">sales@autoflow.io</a>
+              <p className="text-xs text-gray-400 mt-1">Pricing and enterprise plans</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA Banner ── */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto bg-indigo-600 rounded-3xl p-12 text-center text-white relative overflow-hidden">
@@ -454,7 +566,9 @@ export default function Home() {
             <span className="font-semibold text-sm">AutoFlow</span>
           </div>
           <div className="flex gap-6 text-sm text-gray-400">
-            <span>Built for Generative AI course</span>
+            <a href="#pricing" className="hover:text-gray-600 transition-colors">Pricing</a>
+            <span>·</span>
+            <a href="mailto:hello@autoflow.io" className="hover:text-gray-600 transition-colors">hello@autoflow.io</a>
             <span>·</span>
             <span>Powered by Claude + n8n</span>
           </div>
