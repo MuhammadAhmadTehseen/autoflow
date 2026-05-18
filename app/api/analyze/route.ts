@@ -3,8 +3,8 @@ import { analyzeBusinessProfile } from "@/lib/claude";
 import { deployWorkflow } from "@/lib/n8n";
 import { sendResultEmail } from "@/lib/email";
 
-// Extend Vercel function timeout to 60s (default is 10s — not enough for Claude + n8n)
-export const maxDuration = 60;
+// Extended to 120s — Claude + 20-node workflow generation needs ~50-65s
+export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,45 +35,36 @@ export async function POST(req: NextRequest) {
       automation_goals: formData.automationGoals || [],
       specific_wish: formData.specificWish || "",
       additional_context: formData.additionalContext || "",
+      requested_opportunity: formData.requested_opportunity || null,
     };
 
     // Step 2: Analyze with Claude → get opportunities + workflow JSON
     const analysis = await analyzeBusinessProfile(profile);
 
-    // Step 3: Deploy the generated workflow to n8n
-    let deployResult = null;
-    try {
-      deployResult = await deployWorkflow(
-        analysis.workflow as Record<string, unknown>
-      );
-    } catch (deployError) {
-      // Non-fatal: still return analysis even if n8n deploy fails
-      console.error("n8n deploy error:", deployError);
-    }
-
-    // Step 4: Send result email (non-fatal)
-    try {
-      await sendResultEmail({
+    // Steps 3 + 4: Deploy workflow AND send email in parallel (saves 5-8s vs sequential)
+    const [deployResult] = await Promise.allSettled([
+      deployWorkflow(analysis.workflow as Record<string, unknown>),
+      sendResultEmail({
         clientName: formData.name as string || "there",
         clientEmail: formData.email as string || process.env.NOTIFY_EMAIL!,
         businessName: formData.businessName as string,
         summary: analysis.summary,
         opportunities: analysis.opportunities,
         workflowName: (analysis.workflow as { name?: string }).name ?? null,
-        workflowUrl: deployResult?.workflowUrl ?? null,
-      });
-    } catch (emailError) {
-      console.error("Email send error:", emailError);
-    }
+        workflowUrl: null, // url not known yet at this point
+      }),
+    ]);
+
+    const deployed = deployResult.status === "fulfilled" ? deployResult.value : null;
 
     return NextResponse.json({
       opportunities: analysis.opportunities,
       summary: analysis.summary,
       workflow: {
         name: (analysis.workflow as { name?: string }).name ?? "AutoFlow Workflow",
-        deployed: deployResult !== null,
-        id: deployResult?.workflowId ?? null,
-        url: deployResult?.workflowUrl ?? null,
+        deployed: deployed !== null,
+        id: deployed?.workflowId ?? null,
+        url: deployed?.workflowUrl ?? null,
       },
     });
   } catch (error) {
