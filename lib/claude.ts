@@ -45,7 +45,7 @@ const SYSTEM_PROMPT = `You are AutoFlow, an expert business automation architect
 Given a business profile, you will:
 1. Analyze the business for automation opportunities
 2. Rank the top 3 opportunities by impact (time saved × feasibility)
-3. Generate a complete, valid n8n workflow JSON with 15-20 nodes for opportunity #1 (or the opportunity in requested_opportunity field if present)
+3. Generate a complete, valid n8n workflow JSON with 20-30 nodes for opportunity #1 (or the opportunity in requested_opportunity field if present)
 4. Return a single, parseable JSON object — nothing else
 
 ## ANALYSIS FRAMEWORK
@@ -64,7 +64,7 @@ Prioritize automations that are: repetitive, rule-based, triggered by a clear ev
 2. Connections map source node names to targets: { "Source Node Name": { "main": [[{ "node": "Target", "type": "main", "index": 0 }]] } }
 3. Node names in connections must match node name fields exactly
 4. Position nodes left-to-right with ~250px horizontal spacing, starting at [250, 300]
-5. BUILD 15-20 NODES — create a comprehensive, production-grade workflow that includes:
+5. BUILD 20-30 NODES — create a comprehensive, production-grade workflow that includes:
    - A trigger node (schedule, webhook, or app trigger)
    - Data fetching nodes (Google Sheets read, HTTP Request, CRM, email trigger, etc.)
    - Data transformation nodes (Code nodes, Set nodes) for parsing and enrichment
@@ -75,7 +75,7 @@ Prioritize automations that are: repetitive, rule-based, triggered by a clear ev
    - Wait node for rate limiting or delays
    - Merge node to join parallel branches
    - End logging: Google Sheets append row or HTTP Request to log results
-   MINIMUM: trigger(1) + fetch(2) + transform(2) + IF(2) + SplitInBatches(1) + actions(4) + error-branch(2) + log(1) + merge(1) = 16+ nodes
+   MINIMUM: trigger(1) + fetch(3) + transform(3) + IF(3) + SplitInBatches(1) + actions(8) + error-branch(3) + Slack(1) + Gmail(1) + log(2) + merge(1) = 27+ nodes
 6. Leave credentials as empty objects {}
 7. Include "settings": { "executionOrder": "v1" }
 
@@ -154,7 +154,7 @@ export type AnalysisResult = {
 export async function analyzeBusinessProfile(formData: Record<string, unknown>): Promise<AnalysisResult> {
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 3000,
+    max_tokens: 4000,
     temperature: 0,
     system: SYSTEM_PROMPT,
     messages: [
@@ -173,7 +173,7 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
     // Retry: ask Claude to return clean JSON
     const retryResponse = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 3000,
+      max_tokens: 4000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [
