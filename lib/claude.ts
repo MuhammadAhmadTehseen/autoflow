@@ -154,7 +154,7 @@ export type AnalysisResult = {
 export async function analyzeBusinessProfile(formData: Record<string, unknown>): Promise<AnalysisResult> {
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 4000,
+    max_tokens: 6000,
     temperature: 0,
     system: SYSTEM_PROMPT,
     messages: [
@@ -173,7 +173,7 @@ export async function analyzeBusinessProfile(formData: Record<string, unknown>):
     // Retry: ask Claude to return clean JSON
     const retryResponse = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 4000,
+      max_tokens: 6000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [
