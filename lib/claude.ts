@@ -35,7 +35,10 @@ ${templates.clientOnboarding.description}
 ### Template 8: Invoice Generation and Delivery
 ${templates.invoiceGeneration.description}
 
-When generating the workflow JSON, use templates above for node syntax reference only. Build a new comprehensive workflow tailored to this business. If the input contains a requested_opportunity field, build the workflow for that ranked opportunity instead of #1.
+### Template 9: Multi-CRM Lead Scraping and Sync Pipeline
+${templates.multiCrmLeadPipeline.description}
+
+When generating the workflow JSON, use templates above for node syntax reference only. Build a new comprehensive workflow tailored to this business. If the business mentions Apify, LinkedIn scraping, HubSpot, Asana, ClickUp, or multi-CRM sync, use Template 9 as your primary structural reference. If the input contains a requested_opportunity field, build the workflow for that ranked opportunity instead of #1.
 `;
 
 const SYSTEM_PROMPT = `You are AutoFlow, an expert business automation architect specializing in n8n workflow design and small business process optimization. Your role is to analyze a business profile, identify the highest-impact automation opportunities, and generate a production-ready n8n workflow JSON for the top opportunity.
@@ -65,17 +68,20 @@ Prioritize automations that are: repetitive, rule-based, triggered by a clear ev
 3. Node names in connections must match node name fields exactly
 4. Position nodes left-to-right with ~250px horizontal spacing, starting at [250, 300]
 5. BUILD 20-25 NODES — create a comprehensive, production-grade workflow that includes:
-   - A trigger node (schedule, webhook, or app trigger)
-   - Data fetching nodes (Google Sheets read, HTTP Request, CRM, email trigger, etc.)
+   - A trigger node (schedule, webhook, or app trigger) — use BOTH webhook + schedule triggers with a Merge node if the business has batch and real-time needs
+   - Data fetching nodes (Google Sheets read, HTTP Request, CRM, email trigger, Apify scraper, etc.)
    - Data transformation nodes (Code nodes, Set nodes) for parsing and enrichment
    - At least 2 IF nodes for conditional branching (e.g. hot vs cold leads, success vs error)
+   - A Switch node (type: n8n-nodes-base.switch, typeVersion: 3) for 3-way routing (e.g. hot/warm/cold)
    - SplitInBatches node for processing lists of records
-   - Multiple action nodes: email (Gmail), messaging (Slack/Discord), CRM update, spreadsheet write
+   - Multiple action nodes: use NATIVE n8n integrations — HubSpot (n8n-nodes-base.hubspot typeVersion:2), Asana (n8n-nodes-base.asana typeVersion:1), ClickUp (n8n-nodes-base.clickUp typeVersion:1), Google Sheets (n8n-nodes-base.googleSheets typeVersion:4), Slack (n8n-nodes-base.slack typeVersion:2), Gmail (n8n-nodes-base.gmail typeVersion:2)
+   - If the business uses Apify: call Apify REST API via HTTP Request (POST https://api.apify.com/v2/acts/{actor}/runs), then Wait node, then fetch dataset via HTTP Request GET
    - Error handling: IF node on result with error notification path
    - Wait node for rate limiting or delays
    - Merge node to join parallel branches
    - End logging: Google Sheets append row or HTTP Request to log results
-   MINIMUM: trigger(1) + fetch(3) + transform(3) + IF(3) + SplitInBatches(1) + actions(8) + error-branch(3) + Slack(1) + Gmail(1) + log(2) + merge(1) = 21+ nodes
+   MINIMUM: trigger(1-2) + merge(1) + fetch(3) + transform(3) + IF(2) + Switch(1) + SplitInBatches(1) + actions(8) + error-branch(2) + Slack(1) + Gmail(1) + log(1) = 21+ nodes
+   IMPORTANT: If the business mentions tools like HubSpot, Asana, ClickUp — use those native n8n nodes, NOT generic HTTP Requests for those CRM actions
 6. Leave credentials as empty objects {}
 7. Include "settings": { "executionOrder": "v1" }
 

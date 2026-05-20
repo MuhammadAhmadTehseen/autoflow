@@ -541,6 +541,16 @@
     }
   },
 
+  "multiCrmLeadPipeline": {
+    "description": "Use this pattern for B2B agencies or sales teams that scrape leads from LinkedIn using Apify, score them with AI, and sync qualified leads across multiple CRM and project management tools simultaneously. DUAL TRIGGER: A Webhook node (type: n8n-nodes-base.webhook, typeVersion: 2, httpMethod: POST) handles on-demand campaign starts AND a Schedule Trigger (type: n8n-nodes-base.scheduleTrigger, typeVersion: 1) runs daily batches — a Merge node (type: n8n-nodes-base.merge, typeVersion: 2) joins both paths. An HTTP Request node calls Apify Actor API (POST https://api.apify.com/v2/acts/apify~linkedin-profile-scraper/runs) with Bearer token auth to scrape LinkedIn profiles. A Wait node (type: n8n-nodes-base.wait, typeVersion: 1, resume: timeInterval) pauses 2 minutes for Apify to complete. Another HTTP Request fetches the Apify dataset items. An IF node checks if results are ready. A Code node parses the raw scraped profiles into clean lead objects. A SplitInBatches node (type: n8n-nodes-base.splitInBatches, typeVersion: 3, batchSize: 10) loops through leads. An HTTP Request calls Claude API to score each lead. A Code node parses the score. A Switch node (type: n8n-nodes-base.switch, typeVersion: 3) routes by score — output 0 = hot, output 1 = warm, output 2 = cold. Hot leads go to: HubSpot Create Contact (type: n8n-nodes-base.hubspot, typeVersion: 2, resource: contact, operation: create, additionalFields with lifecyclestage: salesqualifiedlead) AND ClickUp Create Task (type: n8n-nodes-base.clickUp, typeVersion: 1, resource: task, operation: create). Warm leads go to: HubSpot Create Contact (lifecyclestage: marketingqualifiedlead) AND Asana Create Task (type: n8n-nodes-base.asana, typeVersion: 1, resource: task, operation: create). All leads regardless of score go to Google Sheets Append (type: n8n-nodes-base.googleSheets, typeVersion: 4, operation: append) for unified logging. A Merge node joins all branches. A final IF node checks for errors and routes failures to a Slack alert (type: n8n-nodes-base.slack, typeVersion: 2). Gmail sends a daily summary. Best for: lead generation agencies, B2B outreach teams, sales automation platforms that manage leads across multiple CRM tools.",
+    "workflow": {
+      "name": "Multi-CRM Lead Scraping and Sync Pipeline",
+      "nodes": [],
+      "connections": {},
+      "settings": { "executionOrder": "v1" }
+    }
+  },
+
   "invoiceGeneration": {
     "description": "Use this pattern to automatically generate and email invoices when a project is marked complete. A Google Sheets trigger fires when a row is updated with 'completed' status, a Code node builds the invoice data including line items and totals, and Gmail sends a formatted invoice email to the client. Best for: freelancers, agencies, consultants billing on project completion.",
     "workflow": {
